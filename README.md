@@ -4,8 +4,8 @@ This tool exports all available models from Azure AI Foundry (Model Catalog) to 
 
 ## Features
 
-- Fetches all models from Azure AI Foundry workspace
-- Exports model details including name, version, description, tags, type, path, and creation information
+- Fetches all deployed models from Azure AI Foundry project
+- Exports model deployment details including name, model name, version, publisher, type, SKU, capabilities, and connection information
 - Generates a formatted Excel file with:
   - Color-coded headers
   - Auto-adjusted column widths
@@ -15,8 +15,8 @@ This tool exports all available models from Azure AI Foundry (Model Catalog) to 
 ## Prerequisites
 
 - Python 3.8 or higher
-- Azure subscription with AI Foundry workspace
-- Appropriate Azure permissions to access the workspace
+- Azure subscription with AI Foundry project
+- Appropriate Azure permissions to access the project
 
 ## Installation
 
@@ -36,12 +36,15 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-4. Edit `.env` and fill in your Azure details:
+4. Edit `.env` and fill in your Azure AI Foundry project endpoint:
 ```
-AZURE_SUBSCRIPTION_ID=your-subscription-id
-AZURE_RESOURCE_GROUP=your-resource-group
-AZURE_WORKSPACE_NAME=your-workspace-name
+PROJECT_ENDPOINT=https://your-project-name.region.api.azureml.ms
 ```
+
+You can find your project endpoint in the Azure AI Foundry portal:
+- Navigate to your AI Foundry project
+- Go to the "Overview" section
+- Copy the "Project endpoint" value
 
 ## Authentication
 
@@ -69,22 +72,22 @@ python export_models.py
 ```
 
 The script will:
-1. Connect to your Azure AI Foundry workspace
-2. Fetch all available models
+1. Connect to your Azure AI Foundry project
+2. Fetch all deployed models
 3. Generate an Excel file named `ai_foundry_models_YYYYMMDD_HHMMSS.xlsx`
 
 ## Output
 
 The Excel file contains the following columns:
 
-- **Name**: Model name
-- **Version**: Model version
-- **Description**: Model description
-- **Tags**: Model tags (key:value pairs)
-- **Type**: Model type
-- **Path**: Model path/location
-- **Created Date**: When the model was created
-- **Created By**: Who created the model
+- **Name**: Deployment name
+- **Model Name**: The name of the deployed model
+- **Model Version**: Model version
+- **Model Publisher**: Publisher of the model (e.g., Microsoft, Meta, etc.)
+- **Type**: Deployment type
+- **SKU**: The pricing tier/SKU used for the deployment
+- **Capabilities**: Model capabilities (e.g., chat, completion, embeddings)
+- **Connection**: The connection name used for the deployment
 
 ## GitHub Actions Workflow
 
@@ -100,17 +103,18 @@ To use the automated workflow, configure the following GitHub secrets in your re
 - `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
 
 #### Azure AI Foundry Configuration
-- `AZURE_RESOURCE_GROUP`: Your Azure resource group name
-- `AZURE_WORKSPACE_NAME`: Your AI Foundry workspace name
+- `PROJECT_ENDPOINT`: Your AI Foundry project endpoint (e.g., `https://your-project-name.region.api.azureml.ms`)
 
 ### Azure OIDC Setup
 
 1. Create an Azure AD application registration
 2. Configure federated credentials for GitHub Actions
-3. Grant the application appropriate permissions to access your AI Foundry workspace
+3. Grant the application appropriate permissions to access your AI Foundry project
 4. Add the credentials as GitHub secrets
 
 For detailed instructions, see [Azure's documentation on configuring OIDC for GitHub Actions](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure).
+
+**Note:** The application must have permissions to read deployments from the Azure AI Foundry project. The recommended role is "Azure AI Developer" or "Reader" on the AI Foundry project resource.
 
 ### Workflow Triggers
 
@@ -143,22 +147,30 @@ After the workflow completes:
 
 If you encounter authentication errors:
 - Ensure you're logged in with `az login`
-- Verify your Azure credentials have access to the workspace
-- Check that the subscription ID, resource group, and workspace name are correct
+- Verify your Azure credentials have access to the AI Foundry project
+- Check that the PROJECT_ENDPOINT is correct and matches your project endpoint in Azure
 
 ### No Models Found
 
 If no models are found:
-- Verify your workspace contains models
-- Check that you have read permissions on the workspace
-- Ensure you're connected to the correct workspace
+- Verify your AI Foundry project has deployed models (check "Models + endpoints" tab in the portal)
+- Check that you have read permissions on the project
+- Ensure you're connected to the correct project endpoint
+
+### ParentResourceNotFound Error
+
+If you encounter a `ParentResourceNotFound` error:
+- This typically means you're using an Azure Machine Learning workspace instead of an Azure AI Foundry project
+- Ensure you're using the correct PROJECT_ENDPOINT that points to an Azure AI Foundry project resource
+- The endpoint should be in the format: `https://your-project-name.region.api.azureml.ms`
 
 ### GitHub Actions Workflow Errors
 
 If the GitHub Actions workflow fails:
 - Verify all required secrets are configured correctly
 - Check that the Azure OIDC federated credentials are set up properly
-- Ensure the Azure application has the necessary permissions to access the AI Foundry workspace
+- Ensure the Azure application has the necessary permissions to access the AI Foundry project (Azure AI Developer or Reader role)
+- Verify that PROJECT_ENDPOINT is set correctly in GitHub secrets
 - Review the workflow logs for specific error messages
 
 ## License

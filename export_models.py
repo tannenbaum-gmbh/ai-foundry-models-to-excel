@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 from typing import List, Dict, Any
 
-from azure.ai.ml import MLClient
+from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -19,69 +19,65 @@ from openpyxl.utils import get_column_letter
 from dotenv import load_dotenv
 
 
-def get_ml_client() -> MLClient:
+def get_project_client() -> AIProjectClient:
     """
-    Create and return an MLClient for accessing Azure AI Foundry.
+    Create and return an AIProjectClient for accessing Azure AI Foundry.
     
     Returns:
-        MLClient: Configured ML client
+        AIProjectClient: Configured AI Project client
     """
     load_dotenv()
     
-    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-    resource_group = os.getenv("AZURE_RESOURCE_GROUP")
-    workspace_name = os.getenv("AZURE_WORKSPACE_NAME")
+    project_endpoint = os.getenv("PROJECT_ENDPOINT")
     
-    if not all([subscription_id, resource_group, workspace_name]):
-        print("Error: Missing required environment variables.")
-        print("Please set AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, and AZURE_WORKSPACE_NAME")
+    if not project_endpoint:
+        print("Error: Missing required environment variable.")
+        print("Please set PROJECT_ENDPOINT")
         print("You can copy .env.example to .env and fill in your values.")
         sys.exit(1)
     
     try:
         credential = DefaultAzureCredential()
-        ml_client = MLClient(
-            credential=credential,
-            subscription_id=subscription_id,
-            resource_group_name=resource_group,
-            workspace_name=workspace_name
+        project_client = AIProjectClient(
+            endpoint=project_endpoint,
+            credential=credential
         )
-        return ml_client
+        return project_client
     except Exception as e:
-        print(f"Error creating ML client: {e}")
+        print(f"Error creating AI Project client: {e}")
         sys.exit(1)
 
 
-def fetch_models(ml_client: MLClient) -> List[Dict[str, Any]]:
+def fetch_models(project_client: AIProjectClient) -> List[Dict[str, Any]]:
     """
-    Fetch all models from the AI Foundry catalog.
+    Fetch all deployed models from the AI Foundry project.
     
     Args:
-        ml_client: The MLClient instance
+        project_client: The AIProjectClient instance
         
     Returns:
         List of model dictionaries with their details
     """
-    print("Fetching models from AI Foundry catalog...")
+    print("Fetching deployed models from AI Foundry project...")
     models_data = []
     
     try:
-        models = ml_client.models.list()
+        deployments = project_client.deployments.list()
         
-        for model in models:
+        for deployment in deployments:
             model_info = {
-                "Name": model.name,
-                "Version": model.version,
-                "Description": model.description or "N/A",
-                "Tags": ", ".join([f"{k}:{v}" for k, v in (model.tags or {}).items()]),
-                "Type": model.type or "N/A",
-                "Path": model.path or "N/A",
-                "Created Date": model.creation_context.created_at.strftime("%Y-%m-%d %H:%M:%S") if hasattr(model, 'creation_context') and model.creation_context else "N/A",
-                "Created By": model.creation_context.created_by if hasattr(model, 'creation_context') and model.creation_context else "N/A",
+                "Name": deployment.name,
+                "Model Name": deployment.model_name if hasattr(deployment, 'model_name') else "N/A",
+                "Model Version": deployment.model_version if hasattr(deployment, 'model_version') else "N/A",
+                "Model Publisher": deployment.model_publisher if hasattr(deployment, 'model_publisher') else "N/A",
+                "Type": deployment.type if hasattr(deployment, 'type') else "N/A",
+                "SKU": str(deployment.sku) if hasattr(deployment, 'sku') else "N/A",
+                "Capabilities": ", ".join(deployment.capabilities) if hasattr(deployment, 'capabilities') and deployment.capabilities else "N/A",
+                "Connection": deployment.connection_name if hasattr(deployment, 'connection_name') else "N/A",
             }
             models_data.append(model_info)
             
-        print(f"Found {len(models_data)} models")
+        print(f"Found {len(models_data)} deployed models")
         return models_data
         
     except Exception as e:
@@ -104,7 +100,7 @@ def export_to_excel(models_data: List[Dict[str, Any]], output_file: str):
     ws.title = "AI Foundry Models"
     
     # Define headers
-    headers = ["Name", "Version", "Description", "Tags", "Type", "Path", "Created Date", "Created By"]
+    headers = ["Name", "Model Name", "Model Version", "Model Publisher", "Type", "SKU", "Capabilities", "Connection"]
     
     # Style for headers
     header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
@@ -154,11 +150,11 @@ def main():
     print("=" * 60)
     print()
     
-    # Get ML client
-    ml_client = get_ml_client()
+    # Get AI Project client
+    project_client = get_project_client()
     
     # Fetch models
-    models_data = fetch_models(ml_client)
+    models_data = fetch_models(project_client)
     
     if not models_data:
         print("No models found or error occurred.")
