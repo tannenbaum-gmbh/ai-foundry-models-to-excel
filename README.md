@@ -86,6 +86,57 @@ The Excel file contains the following columns:
 - **Created Date**: When the model was created
 - **Created By**: Who created the model
 
+## GitHub Actions Workflow
+
+This repository includes a GitHub Actions workflow that automatically exports AI Foundry models and creates a release with the Excel file.
+
+### Setup
+
+To use the automated workflow, configure the following GitHub secrets in your repository settings:
+
+#### Azure OIDC Authentication
+- `AZURE_CLIENT_ID`: The client ID of your Azure AD application
+- `AZURE_TENANT_ID`: Your Azure AD tenant ID
+- `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
+
+#### Azure AI Foundry Configuration
+- `AZURE_RESOURCE_GROUP`: Your Azure resource group name
+- `AZURE_WORKSPACE_NAME`: Your AI Foundry workspace name
+
+### Azure OIDC Setup
+
+1. Create an Azure AD application registration
+2. Configure federated credentials for GitHub Actions
+3. Grant the application appropriate permissions to access your AI Foundry workspace
+4. Add the credentials as GitHub secrets
+
+For detailed instructions, see [Azure's documentation on configuring OIDC for GitHub Actions](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure).
+
+### Workflow Triggers
+
+The workflow can be triggered in two ways:
+
+1. **Manual trigger**: Go to Actions → Export AI Foundry Models → Run workflow
+2. **Scheduled**: Automatically runs every Monday at 6:00 AM UTC
+
+### Workflow Steps
+
+The workflow performs the following steps:
+
+1. Checks out the repository code
+2. Sets up Python 3.11 environment
+3. Installs dependencies from requirements.txt
+4. Authenticates to Azure using OIDC
+5. Runs the export_models.py script
+6. Uploads the generated Excel file as a workflow artifact (retained for 90 days)
+7. Creates a GitHub release with the Excel file attached
+
+### Accessing the Results
+
+After the workflow completes:
+- Download the Excel file from the workflow run's artifacts section
+- Find the release in the Releases section with the Excel file attached
+
 ## Troubleshooting
 
 ### Authentication Errors
@@ -101,6 +152,14 @@ If no models are found:
 - Verify your workspace contains models
 - Check that you have read permissions on the workspace
 - Ensure you're connected to the correct workspace
+
+### GitHub Actions Workflow Errors
+
+If the GitHub Actions workflow fails:
+- Verify all required secrets are configured correctly
+- Check that the Azure OIDC federated credentials are set up properly
+- Ensure the Azure application has the necessary permissions to access the AI Foundry workspace
+- Review the workflow logs for specific error messages
 
 ## License
 
