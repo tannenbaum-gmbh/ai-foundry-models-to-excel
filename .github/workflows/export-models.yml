@@ -1,0 +1,86 @@
+name: Export AI Foundry Models
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run every Monday at 6:00 AM UTC
+    - cron: '0 6 * * 1'
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  export-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Export AI Foundry Models
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          AZURE_WORKSPACE_NAME: ${{ secrets.AZURE_WORKSPACE_NAME }}
+        run: |
+          python export_models.py
+
+      - name: Get Excel filename
+        id: get-filename
+        run: |
+          EXCEL_FILE=$(ls ai_foundry_models_*.xlsx | head -n 1)
+          echo "excel_file=$EXCEL_FILE" >> $GITHUB_OUTPUT
+          echo "Found Excel file: $EXCEL_FILE"
+
+      - name: Upload Excel as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-foundry-models-export
+          path: ${{ steps.get-filename.outputs.excel_file }}
+          retention-days: 90
+
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: export-${{ github.run_number }}
+          release_name: AI Foundry Models Export - ${{ github.run_number }}
+          body: |
+            Automated export of AI Foundry models
+            
+            Run Number: ${{ github.run_number }}
+            Run ID: ${{ github.run_id }}
+            Triggered by: ${{ github.actor }}
+            Timestamp: ${{ github.event.repository.updated_at }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Excel to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.get-filename.outputs.excel_file }}
+          asset_name: ${{ steps.get-filename.outputs.excel_file }}
+          asset_content_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
