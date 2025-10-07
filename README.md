@@ -4,8 +4,8 @@ This tool exports all available models from Azure AI Foundry (Model Catalog) to 
 
 ## Features
 
-- Fetches all models from Azure AI Foundry workspace
-- Exports model details including name, version, description, tags, type, path, and creation information
+- Fetches all available models from Azure AI Foundry (Model Catalog) using the official Account Management API
+- Exports model details including name, version, description, format, kind, SKU, lifecycle status, and system metadata
 - Generates a formatted Excel file with:
   - Color-coded headers
   - Auto-adjusted column widths
@@ -15,8 +15,8 @@ This tool exports all available models from Azure AI Foundry (Model Catalog) to 
 ## Prerequisites
 
 - Python 3.8 or higher
-- Azure subscription with AI Foundry workspace
-- Appropriate Azure permissions to access the workspace
+- Azure subscription with access to AI Foundry
+- Appropriate Azure permissions to list models in the region
 
 ## Installation
 
@@ -39,9 +39,10 @@ cp .env.example .env
 4. Edit `.env` and fill in your Azure details:
 ```
 AZURE_SUBSCRIPTION_ID=your-subscription-id
-AZURE_RESOURCE_GROUP=your-resource-group
-AZURE_WORKSPACE_NAME=your-workspace-name
+AZURE_LOCATION=eastus
 ```
+
+Note: Replace `eastus` with your desired Azure region (e.g., `westus`, `westeurope`, etc.)
 
 ## Authentication
 
@@ -69,8 +70,8 @@ python export_models.py
 ```
 
 The script will:
-1. Connect to your Azure AI Foundry workspace
-2. Fetch all available models
+1. Connect to Azure using the AI Foundry Account Management API
+2. Fetch all available models from the specified region
 3. Generate an Excel file named `ai_foundry_models_YYYYMMDD_HHMMSS.xlsx`
 
 ## Output
@@ -80,11 +81,15 @@ The Excel file contains the following columns:
 - **Name**: Model name
 - **Version**: Model version
 - **Description**: Model description
-- **Tags**: Model tags (key:value pairs)
-- **Type**: Model type
-- **Path**: Model path/location
+- **Format**: Model format (e.g., OpenAI)
+- **Kind**: Model kind/type
+- **SKU**: Model SKU name
+- **Lifecycle Status**: Model lifecycle status (e.g., Stable, Preview)
+- **Max Capacity**: Maximum capacity for the model
 - **Created Date**: When the model was created
 - **Created By**: Who created the model
+- **Last Modified Date**: When the model was last modified
+- **Last Modified By**: Who last modified the model
 
 ## GitHub Actions Workflow
 
@@ -100,17 +105,20 @@ To use the automated workflow, configure the following GitHub secrets in your re
 - `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
 
 #### Azure AI Foundry Configuration
-- `AZURE_RESOURCE_GROUP`: Your Azure resource group name
-- `AZURE_WORKSPACE_NAME`: Your AI Foundry workspace name
+- `AZURE_LOCATION`: Your Azure region (e.g., `eastus`, `westus`, `westeurope`)
 
 ### Azure OIDC Setup
 
 1. Create an Azure AD application registration
 2. Configure federated credentials for GitHub Actions
-3. Grant the application appropriate permissions to access your AI Foundry workspace
+3. Grant the application appropriate permissions (Reader role at subscription level or appropriate scope)
 4. Add the credentials as GitHub secrets
 
 For detailed instructions, see [Azure's documentation on configuring OIDC for GitHub Actions](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure).
+
+### API Reference
+
+This tool uses the [AI Foundry Account Management REST API - Models List](https://learn.microsoft.com/en-us/rest/api/aifoundry/accountmanagement/models/list?view=rest-aifoundry-accountmanagement-2025-06-01&tabs=HTTP) endpoint to retrieve available models from the catalog.
 
 ### Workflow Triggers
 
@@ -143,22 +151,22 @@ After the workflow completes:
 
 If you encounter authentication errors:
 - Ensure you're logged in with `az login`
-- Verify your Azure credentials have access to the workspace
-- Check that the subscription ID, resource group, and workspace name are correct
+- Verify your Azure credentials have appropriate permissions to list models
+- Check that the subscription ID and location are correct
 
 ### No Models Found
 
 If no models are found:
-- Verify your workspace contains models
-- Check that you have read permissions on the workspace
-- Ensure you're connected to the correct workspace
+- Verify that the specified Azure location/region has AI Foundry models available
+- Check that you have read permissions on the subscription or appropriate scope
+- Ensure you're using a valid Azure region (e.g., `eastus`, `westus`, `westeurope`)
 
 ### GitHub Actions Workflow Errors
 
 If the GitHub Actions workflow fails:
-- Verify all required secrets are configured correctly
+- Verify all required secrets are configured correctly (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_LOCATION`)
 - Check that the Azure OIDC federated credentials are set up properly
-- Ensure the Azure application has the necessary permissions to access the AI Foundry workspace
+- Ensure the Azure application has the necessary permissions (Reader role) on the subscription or appropriate scope
 - Review the workflow logs for specific error messages
 
 ## License
