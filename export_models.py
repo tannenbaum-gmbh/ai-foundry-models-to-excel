@@ -252,7 +252,7 @@ def main():
     
     # Fetch models from Azure ML Registries
     load_dotenv()
-    registry_names_str = os.getenv("AZURE_ML_REGISTRY_NAMES", "azureml,azureml-meta")
+    registry_names_str = os.getenv("AZURE_ML_REGISTRY_NAMES", "azureml,azureml-meta,azureml-cohere,azureml-mistral,azureml-xai,HuggingFace,azureml-nvidia")
     registry_names = [name.strip() for name in registry_names_str.split(",") if name.strip()]
     
     if registry_names:

@@ -5,7 +5,7 @@ This tool exports all available models from Azure AI Foundry (Model Catalog) and
 ## Features
 
 - Fetches all available models from Azure AI Foundry (Model Catalog) using the official Account Management API
-- Fetches all available models from Azure ML Registries (azureml, azureml-meta, etc.) for managed compute deployment
+- Fetches all available models from Azure ML Registries (azureml, azureml-meta, azureml-cohere, azureml-mistral, azureml-xai, HuggingFace, azureml-nvidia, etc.) for managed compute deployment
 - Exports model details including name, version, description, format, kind, SKU, lifecycle status, and system metadata
 - Generates a formatted Excel file with:
   - Color-coded headers
@@ -44,13 +44,13 @@ AZURE_SUBSCRIPTION_ID=your-subscription-id
 AZURE_LOCATION=eastus
 
 # Optional: Azure ML Registry Names (comma-separated list)
-# Common registries: azureml, azureml-meta, azureml-cohere, azureml-mistral
-AZURE_ML_REGISTRY_NAMES=azureml,azureml-meta
+# Common registries: azureml, azureml-meta, azureml-cohere, azureml-mistral, azureml-xai, HuggingFace, azureml-nvidia
+AZURE_ML_REGISTRY_NAMES=azureml,azureml-meta,azureml-cohere,azureml-mistral,azureml-xai,HuggingFace,azureml-nvidia
 ```
 
 Note: Replace `eastus` with your desired Azure region (e.g., `westus`, `westeurope`, etc.)
 
-The `AZURE_ML_REGISTRY_NAMES` environment variable is optional and defaults to `azureml,azureml-meta` if not specified. You can customize this list to include other Azure ML registries like `azureml-cohere`, `azureml-mistral`, etc.
+The `AZURE_ML_REGISTRY_NAMES` environment variable is optional and defaults to `azureml,azureml-meta,azureml-cohere,azureml-mistral,azureml-xai,HuggingFace,azureml-nvidia` if not specified. You can customize this list to include other Azure ML registries as needed.
 
 ## Authentication
 
@@ -111,6 +111,9 @@ The tool fetches models from two sources:
    - `azureml-meta`: Meta/Llama models
    - `azureml-cohere`: Cohere models
    - `azureml-mistral`: Mistral models
+   - `azureml-xai`: Explainable AI models
+   - `HuggingFace`: Hugging Face models
+   - `azureml-nvidia`: NVIDIA models
    - And other specialized registries
 
 ## GitHub Actions Workflow
@@ -128,7 +131,7 @@ To use the automated workflow, configure the following GitHub secrets in your re
 
 #### Azure AI Foundry Configuration
 - `AZURE_LOCATION`: Your Azure region (e.g., `eastus`, `westus`, `westeurope`)
-- `AZURE_ML_REGISTRY_NAMES`: (Optional) Comma-separated list of Azure ML Registry names (defaults to `azureml,azureml-meta`)
+- `AZURE_ML_REGISTRY_NAMES`: (Optional) Comma-separated list of Azure ML Registry names (defaults to `azureml,azureml-meta,azureml-cohere,azureml-mistral,azureml-xai,HuggingFace,azureml-nvidia`)
 
 ### Azure OIDC Setup
 
