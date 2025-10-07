@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Export AI Foundry Model Catalog to Excel
+Export AI Foundry Model Catalog and Azure ML Registry Models to Excel
 
 This script fetches all available models from Azure AI Foundry (Model Catalog)
-and exports them to an Excel file with details about each model.
+and Azure ML Registries, then exports them to an Excel file with details about each model.
 """
 
 import os

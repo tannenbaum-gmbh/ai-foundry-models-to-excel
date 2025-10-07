@@ -128,6 +128,7 @@ To use the automated workflow, configure the following GitHub secrets in your re
 
 #### Azure AI Foundry Configuration
 - `AZURE_LOCATION`: Your Azure region (e.g., `eastus`, `westus`, `westeurope`)
+- `AZURE_ML_REGISTRY_NAMES`: (Optional) Comma-separated list of Azure ML Registry names (defaults to `azureml,azureml-meta`)
 
 ### Azure OIDC Setup
 

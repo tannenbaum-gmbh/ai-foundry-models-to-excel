@@ -39,6 +39,7 @@ jobs:
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+          AZURE_ML_REGISTRY_NAMES: ${{ secrets.AZURE_ML_REGISTRY_NAMES }}
         run: |
           python export_models.py
 
@@ -65,7 +66,7 @@ jobs:
           tag_name: export-${{ github.run_number }}
           release_name: AI Foundry Models Export - ${{ github.run_number }}
           body: |
-            Automated export of AI Foundry models
+            Automated export of AI Foundry models and Azure ML Registry models
             
             Run Number: ${{ github.run_number }}
             Run ID: ${{ github.run_id }}
