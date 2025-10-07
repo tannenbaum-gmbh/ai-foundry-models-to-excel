@@ -252,7 +252,8 @@ def main():
     
     # Fetch models from Azure ML Registries
     load_dotenv()
-    registry_names_str = os.getenv("AZURE_ML_REGISTRY_NAMES", "azureml,azureml-meta,azureml-cohere,azureml-mistral,azureml-xai,HuggingFace,azureml-nvidia")
+    # Default includes all known public registries - see REGISTRY_DISCOVERY.md for details
+    registry_names_str = os.getenv("AZURE_ML_REGISTRY_NAMES", "azureml,azureml-meta,azureml-cohere,azureml-mistral,azureml-xai,azureml-deepseek,azureml-core42,azureml-stabilityai,azureml-nvidia,HuggingFace,azureml-gretel")
     registry_names = [name.strip() for name in registry_names_str.split(",") if name.strip()]
     
     if registry_names:
