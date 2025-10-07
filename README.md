@@ -1,16 +1,18 @@
 # AI Foundry Models to Excel
 
-This tool exports all available models from Azure AI Foundry (Model Catalog) to an Excel file with detailed information about each model.
+This tool exports all available models from Azure AI Foundry (Model Catalog) and Azure ML Registries to an Excel file with detailed information about each model.
 
 ## Features
 
 - Fetches all available models from Azure AI Foundry (Model Catalog) using the official Account Management API
+- Fetches all available models from Azure ML Registries (azureml, azureml-meta, etc.) for managed compute deployment
 - Exports model details including name, version, description, format, kind, SKU, lifecycle status, and system metadata
 - Generates a formatted Excel file with:
   - Color-coded headers
   - Auto-adjusted column widths
   - Frozen header row for easy scrolling
   - Timestamp in filename
+  - Source identification for each model (AI Foundry Catalog vs Azure ML Registry)
 
 ## Prerequisites
 
@@ -40,9 +42,15 @@ cp .env.example .env
 ```
 AZURE_SUBSCRIPTION_ID=your-subscription-id
 AZURE_LOCATION=eastus
+
+# Optional: Azure ML Registry Names (comma-separated list)
+# Common registries: azureml, azureml-meta, azureml-cohere, azureml-mistral
+AZURE_ML_REGISTRY_NAMES=azureml,azureml-meta
 ```
 
 Note: Replace `eastus` with your desired Azure region (e.g., `westus`, `westeurope`, etc.)
+
+The `AZURE_ML_REGISTRY_NAMES` environment variable is optional and defaults to `azureml,azureml-meta` if not specified. You can customize this list to include other Azure ML registries like `azureml-cohere`, `azureml-mistral`, etc.
 
 ## Authentication
 
@@ -71,17 +79,19 @@ python export_models.py
 
 The script will:
 1. Connect to Azure using the AI Foundry Account Management API
-2. Fetch all available models from the specified region
-3. Generate an Excel file named `ai_foundry_models_YYYYMMDD_HHMMSS.xlsx`
+2. Fetch all available models from the AI Foundry catalog in the specified region
+3. Fetch all available models from the configured Azure ML Registries
+4. Generate an Excel file named `ai_foundry_models_YYYYMMDD_HHMMSS.xlsx`
 
 ## Output
 
 The Excel file contains the following columns:
 
+- **Source**: Model source (AI Foundry Catalog or Azure ML Registry name)
 - **Name**: Model name
 - **Version**: Model version
 - **Description**: Model description
-- **Format**: Model format (e.g., OpenAI)
+- **Format**: Model format (e.g., OpenAI, MLflow, Custom)
 - **Kind**: Model kind/type
 - **SKU**: Model SKU name
 - **Lifecycle Status**: Model lifecycle status (e.g., Stable, Preview)
@@ -90,6 +100,18 @@ The Excel file contains the following columns:
 - **Created By**: Who created the model
 - **Last Modified Date**: When the model was last modified
 - **Last Modified By**: Who last modified the model
+
+### Model Sources
+
+The tool fetches models from two sources:
+
+1. **AI Foundry Catalog**: Models available through the AI Foundry Model Catalog for standard deployments with pay-as-you-go billing
+2. **Azure ML Registries**: Models available through [Azure Machine Learning registries](https://learn.microsoft.com/en-us/azure/machine-learning/foundry-models-overview?view=azureml-api-2#managed-compute) for managed compute deployment, including:
+   - `azureml`: Main Azure ML registry with models from various providers
+   - `azureml-meta`: Meta/Llama models
+   - `azureml-cohere`: Cohere models
+   - `azureml-mistral`: Mistral models
+   - And other specialized registries
 
 ## GitHub Actions Workflow
 
@@ -106,6 +128,7 @@ To use the automated workflow, configure the following GitHub secrets in your re
 
 #### Azure AI Foundry Configuration
 - `AZURE_LOCATION`: Your Azure region (e.g., `eastus`, `westus`, `westeurope`)
+- `AZURE_ML_REGISTRY_NAMES`: (Optional) Comma-separated list of Azure ML Registry names (defaults to `azureml,azureml-meta`)
 
 ### Azure OIDC Setup
 
@@ -118,7 +141,11 @@ For detailed instructions, see [Azure's documentation on configuring OIDC for Gi
 
 ### API Reference
 
-This tool uses the [AI Foundry Account Management REST API - Models List](https://learn.microsoft.com/en-us/rest/api/aifoundry/accountmanagement/models/list?view=rest-aifoundry-accountmanagement-2025-06-01&tabs=HTTP) endpoint to retrieve available models from the catalog.
+This tool uses:
+- [AI Foundry Account Management REST API - Models List](https://learn.microsoft.com/en-us/rest/api/aifoundry/accountmanagement/models/list?view=rest-aifoundry-accountmanagement-2025-06-01&tabs=HTTP) to retrieve models from the AI Foundry catalog
+- [Azure ML Python SDK](https://learn.microsoft.com/en-us/python/api/azure-ai-ml/azure.ai.ml.mlclient?view=azure-python) to retrieve models from Azure ML registries
+
+For more information about deployment options, see [Azure AI Foundry Models Overview](https://learn.microsoft.com/en-us/azure/machine-learning/foundry-models-overview?view=azureml-api-2#deployment-options).
 
 ### Workflow Triggers
 

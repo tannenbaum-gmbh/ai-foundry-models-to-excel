@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Export AI Foundry Model Catalog to Excel
+Export AI Foundry Model Catalog and Azure ML Registry Models to Excel
 
 This script fetches all available models from Azure AI Foundry (Model Catalog)
-and exports them to an Excel file with details about each model.
+and Azure ML Registries, then exports them to an Excel file with details about each model.
 """
 
 import os
@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 
 from azure.mgmt.cognitiveservices import CognitiveServicesManagementClient
+from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -72,6 +73,7 @@ def fetch_models(client: CognitiveServicesManagementClient, location: str) -> Li
             
             if model_details:
                 model_info = {
+                    "Source": "AI Foundry Catalog",
                     "Name": model_details.name if hasattr(model_details, 'name') else "N/A",
                     "Version": model_details.version if hasattr(model_details, 'version') else "N/A",
                     "Description": model.description if hasattr(model, 'description') and model.description else "N/A",
@@ -107,6 +109,76 @@ def fetch_models(client: CognitiveServicesManagementClient, location: str) -> Li
         return []
 
 
+def fetch_registry_models(credential: DefaultAzureCredential, registry_names: List[str]) -> List[Dict[str, Any]]:
+    """
+    Fetch all models from Azure ML Registries.
+    
+    Args:
+        credential: Azure credential object
+        registry_names: List of registry names to fetch models from (e.g., ['azureml', 'azureml-meta'])
+        
+    Returns:
+        List of model dictionaries with their details
+    """
+    all_models_data = []
+    
+    for registry_name in registry_names:
+        print(f"Fetching models from Azure ML Registry '{registry_name}'...")
+        try:
+            # Create MLClient for the registry
+            ml_client = MLClient(credential=credential, registry_name=registry_name)
+            
+            # List all models in the registry
+            models = ml_client.models.list()
+            
+            count = 0
+            for model in models:
+                model_info = {
+                    "Source": f"Azure ML Registry ({registry_name})",
+                    "Name": model.name if hasattr(model, 'name') else "N/A",
+                    "Version": str(model.version) if hasattr(model, 'version') else "N/A",
+                    "Description": model.description if hasattr(model, 'description') and model.description else "N/A",
+                    "Format": model.type if hasattr(model, 'type') else "N/A",
+                    "Kind": "N/A",
+                    "SKU": "N/A",
+                    "Lifecycle Status": model.stage if hasattr(model, 'stage') and model.stage else "N/A",
+                    "Max Capacity": "N/A",
+                }
+                
+                # Add tags as additional info if available
+                if hasattr(model, 'tags') and model.tags:
+                    tags_str = ", ".join([f"{k}={v}" for k, v in model.tags.items()]) if isinstance(model.tags, dict) else str(model.tags)
+                    if model_info["Description"] == "N/A":
+                        model_info["Description"] = f"Tags: {tags_str}"
+                    else:
+                        model_info["Description"] += f" | Tags: {tags_str}"
+                
+                # Add creation metadata if available
+                if hasattr(model, 'creation_context') and model.creation_context:
+                    creation_context = model.creation_context
+                    model_info["Created Date"] = creation_context.created_at.strftime("%Y-%m-%d %H:%M:%S") if hasattr(creation_context, 'created_at') and creation_context.created_at else "N/A"
+                    model_info["Created By"] = creation_context.created_by if hasattr(creation_context, 'created_by') else "N/A"
+                    model_info["Last Modified Date"] = creation_context.last_modified_at.strftime("%Y-%m-%d %H:%M:%S") if hasattr(creation_context, 'last_modified_at') and creation_context.last_modified_at else "N/A"
+                    model_info["Last Modified By"] = creation_context.last_modified_by if hasattr(creation_context, 'last_modified_by') else "N/A"
+                else:
+                    model_info["Created Date"] = "N/A"
+                    model_info["Created By"] = "N/A"
+                    model_info["Last Modified Date"] = "N/A"
+                    model_info["Last Modified By"] = "N/A"
+                
+                all_models_data.append(model_info)
+                count += 1
+            
+            print(f"Found {count} models in registry '{registry_name}'")
+            
+        except Exception as e:
+            print(f"Error fetching models from registry '{registry_name}': {e}")
+            import traceback
+            traceback.print_exc()
+    
+    return all_models_data
+
+
 def export_to_excel(models_data: List[Dict[str, Any]], output_file: str):
     """
     Export models data to an Excel file with formatting.
@@ -122,7 +194,7 @@ def export_to_excel(models_data: List[Dict[str, Any]], output_file: str):
     ws.title = "AI Foundry Models"
     
     # Define headers
-    headers = ["Name", "Version", "Description", "Format", "Kind", "SKU", "Lifecycle Status", "Max Capacity", "Created Date", "Created By", "Last Modified Date", "Last Modified By"]
+    headers = ["Source", "Name", "Version", "Description", "Format", "Kind", "SKU", "Lifecycle Status", "Max Capacity", "Created Date", "Created By", "Last Modified Date", "Last Modified By"]
     
     # Style for headers
     header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
@@ -175,8 +247,20 @@ def main():
     # Get management client and location
     client, location = get_management_client()
     
-    # Fetch models
+    # Fetch models from AI Foundry catalog
     models_data = fetch_models(client, location)
+    
+    # Fetch models from Azure ML Registries
+    load_dotenv()
+    registry_names_str = os.getenv("AZURE_ML_REGISTRY_NAMES", "azureml,azureml-meta")
+    registry_names = [name.strip() for name in registry_names_str.split(",") if name.strip()]
+    
+    if registry_names:
+        print()
+        print(f"Configured Azure ML Registries: {', '.join(registry_names)}")
+        credential = DefaultAzureCredential()
+        registry_models = fetch_registry_models(credential, registry_names)
+        models_data.extend(registry_models)
     
     if not models_data:
         print("No models found or error occurred.")
@@ -191,6 +275,7 @@ def main():
     
     print()
     print("=" * 60)
+    print(f"Total models exported: {len(models_data)}")
     print("Export completed successfully!")
     print("=" * 60)
 
